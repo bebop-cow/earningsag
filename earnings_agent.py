@@ -33,7 +33,7 @@ def get_report(ticker):
 
     return {
         "ticker": ticker,
-        "eps_history": history
+        "eps_history": history,
         "revenue_growth_yoy": metrics.get("revenueGrowthQuarterlyYoy"),
         "gross_margin": metrics.get("grossMarginTTM"),
         "net_margin": metrics.get("netProfitMarginTTM"),
