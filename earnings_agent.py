@@ -25,7 +25,11 @@ def get_report(ticker):
     earnings = get_earnings(ticker)
     metrics = get_revenue(ticker)["metric"]
 
-    latest = earnings[0]  # most recent quarter
+    history = [
+        {"period": q["period"], "eps_actual": q["actual"],
+         "eps_estimate": q["estimate"], "surprise_pct": q["surprisePercent"]}
+        for q in earnings
+    ]
 
     return {
         "ticker": ticker,
@@ -47,4 +51,27 @@ def summarize(report):
 		])
 	return response["message"]["content"]
 
-print(summarize(get_report("NFLX")))
+def ask_loop(report):
+    print("Ask anything about this report (type 'exit' to quit)")
+    while True:
+        question = input("> ")
+        if question.lower() == "exit":
+            break
+
+        prompt = f"""Here is an earnings report:
+        {report}
+        Use ONLY the data provided. If the answer isn't in the data, say so.
+
+        Answer this question about it: {question}"""
+
+        response = ollama.chat(model="llama3.1", messages=[
+            {"role": "user", "content": prompt}
+        ])
+        print(response["message"]["content"])
+        print()
+
+# run it
+report = get_report("NFLX")
+print(summarize(report))
+print()
+ask_loop(report)
