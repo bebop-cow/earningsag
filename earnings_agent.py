@@ -2,6 +2,8 @@ import requests
 import os
 from dotenv import load_dotenv
 import ollama
+from garch import vol_summary
+print(vol_summary("NFLX"))
 
 load_dotenv()
 FINNHUB_KEY = os.getenv("FINNHUB_KEY")
@@ -73,11 +75,13 @@ def get_statements(ticker):
     return requests.get(url, params=params).json()
 
 data = get_statements("NFLX")
-print(data.keys())
-print(data["data"][0]["report"].keys())
+q = data["data"][0]
+print(q["year"], q["quarter"], q["form"])
+for line in q["report"]["cf"][:8]:
+    print(line)
 
 # run it
-report = get_report("NFLX")
-print(summarize(report))
-print()
-ask_loop(report)
+# report = get_report("NFLX")
+# print(summarize(report))
+# print()
+# ask_loop(report)
