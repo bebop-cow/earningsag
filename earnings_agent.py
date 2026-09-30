@@ -89,12 +89,23 @@ def metric_history(data, statement, keywords):
     ]
 
 data = get_statements("NFLX")
-for row in metric_history(data, "cf", ["net income"]):
-    print(row)
-for row in metric_history(data, "cf", ["additions to content"]):
-    print(row)
-for row in metric_history(data, "bs", ["long-term debt", "total debt"]):
-    print(row)
+
+def to_quarterly(rows):
+    ytd = {(y, q): v for y, q, f, v in rows if v is not None}
+    out = {}
+    for (y, q), v in ytd.items():
+        if q == 1:
+            out[(y, q)] = v
+        elif (y, q - 1) in ytd:
+            out[(y, q)] = v - ytd[(y, q - 1)]
+    return out
+
+content = to_quarterly(metric_history(data, "cf", ["additions to content"]))
+for k in [(2025, 1), (2025, 2), (2025, 3), (2026, 1)]:
+    print(k, content[k])
+
+print(metric_history(data, "bs", ["cash and cash equivalents"])[:4])
+print(metric_history(data, "bs", ["short-term debt"])[:4])
 # run it
 # report = get_report("NFLX")
 # print(summarize(report))
