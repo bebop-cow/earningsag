@@ -104,8 +104,45 @@ content = to_quarterly(metric_history(data, "cf", ["additions to content"]))
 for k in [(2025, 1), (2025, 2), (2025, 3), (2026, 1)]:
     print(k, content[k])
 
-print(metric_history(data, "bs", ["cash and cash equivalents"])[:4])
-print(metric_history(data, "bs", ["short-term debt"])[:4])
+def analyze(ticker):
+    data = get_statements(ticker)
+    flags = []
+
+    # spending + net income (cash flow is YTD, so convert)
+    content = to_quarterly(metric_history(data, "cf", ["additions to content"]))
+    ni = to_quarterly(metric_history(data, "cf", ["net income"]))
+    k = max(content)
+    prev = (k[0] - 1, k[1])
+    spend_yoy = (content[k] / content[prev] - 1) * 100
+    ni_yoy = (ni[k] / ni[prev] - 1) * 100
+
+    # EPS growth (from Finnhub) vs net income growth
+    eps_yoy = get_revenue(ticker)["metric"].get("epsGrowthQuarterlyYoy")
+    if eps_yoy is not None and abs(ni_yoy - eps_yoy) > 25:
+        flags.append(f"Net income {ni_yoy:+.0f}% YoY but EPS {eps_yoy:+.0f}%: possible one-time item")
+
+    # net debt (balance sheet is a snapshot, no conversion)
+    def bs(kw):
+        return {(y, q): v for y, q, f, v in metric_history(data, "bs", kw) if v is not None}
+    lt, st, cash = bs(["long-term debt"]), bs(["short-term debt"]), bs(["cash and cash equivalents"])
+    nd = lambda p: lt.get(p, 0) + st.get(p, 0) - cash[p]
+    nd_change = (nd(k) / nd(prev) - 1) * 100
+
+    if spend_yoy > 20:
+        flags.append(f"Content spend up {spend_yoy:.0f}% YoY")
+    if nd_change > ????:      # your call: what % rise in net debt is worth flagging?
+        flags.append(f"Net debt up {nd_change:.0f}% YoY")
+
+    return {
+        "period": f"{k[0]} Q{k[1]}",
+        "content_spend_yoy_pct": round(spend_yoy, 1),
+        "net_income_yoy_pct": round(ni_yoy, 1),
+        "net_debt_bn": round(nd(k) / 1e9, 2),
+        "net_debt_change_yoy_pct": round(nd_change, 1),
+        "flags": flags,
+    }
+
+print(analyze("NFLX"))
 # run it
 # report = get_report("NFLX")
 # print(summarize(report))
