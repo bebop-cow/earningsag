@@ -67,6 +67,15 @@ def ask_loop(report):
         print(response["message"]["content"])
         print()
 
+def get_statements(ticker):
+    url = "https://finnhub.io/api/v1/stock/financials-reported"
+    params = {"symbol": ticker, "freq": "quarterly", "token": FINNHUB_KEY}
+    return requests.get(url, params=params).json()
+
+data = get_statements("NFLX")
+print(data.keys())
+print(data["data"][0]["report"].keys())
+
 # run it
 report = get_report("NFLX")
 print(summarize(report))
