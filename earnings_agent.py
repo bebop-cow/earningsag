@@ -74,12 +74,27 @@ def get_statements(ticker):
     params = {"symbol": ticker, "freq": "quarterly", "token": FINNHUB_KEY}
     return requests.get(url, params=params).json()
 
-data = get_statements("NFLX")
-q = data["data"][0]
-print(q["year"], q["quarter"], q["form"])
-for line in q["report"]["cf"][:8]:
-    print(line)
+def find_value(section, keywords):
+    for item in section:
+        text = (item["concept"] + " " + item["label"]).lower()
+        if any(k in text for k in keywords):
+            return item["value"]
+    return None
 
+def metric_history(data, statement, keywords):
+    return [
+        (q["year"], q["quarter"], q["form"],
+         find_value(q["report"][statement], keywords))
+        for q in data["data"]
+    ]
+
+data = get_statements("NFLX")
+for row in metric_history(data, "cf", ["net income"]):
+    print(row)
+for row in metric_history(data, "cf", ["additions to content"]):
+    print(row)
+for row in metric_history(data, "bs", ["long-term debt", "total debt"]):
+    print(row)
 # run it
 # report = get_report("NFLX")
 # print(summarize(report))
