@@ -130,7 +130,7 @@ def analyze(ticker):
 
     if spend_yoy > 20:
         flags.append(f"Content spend up {spend_yoy:.0f}% YoY")
-    if nd_change > ????:      # your call: what % rise in net debt is worth flagging?
+    if nd_change > 20:      # your call: what % rise in net debt is worth flagging?
         flags.append(f"Net debt up {nd_change:.0f}% YoY")
 
     return {
@@ -143,6 +143,36 @@ def analyze(ticker):
     }
 
 print(analyze("NFLX"))
+
+def build_facts(ticker):
+    return {
+        "earnings": get_report(ticker),      # EPS history + margins
+        "statements": analyze(ticker),       # spend, net income, net debt, flags
+        "volatility": vol_summary(ticker),   # from garch.py
+    }
+
+SYSTEM = """You are a financial analyst assistant.
+Use ONLY the facts provided. Never calculate, estimate or invent numbers.
+If something isn't in the facts, say you don't have it.
+Lead with the flags. Statement figures are from the period shown
+and may lag the EPS data."""
+
+def run(ticker):
+    facts = build_facts(ticker)
+    messages = [
+        {"role": "system", "content": f"{SYSTEM}\n\nFACTS:\n{facts}"},
+        {"role": "user", "content": "Give me the skinny on this report in a short paragraph."},
+    ]
+    while True:
+        reply = ollama.chat(model="llama3.1", messages=messages)["message"]["content"]
+        print(reply, "\n")
+        messages.append({"role": "assistant", "content": reply})
+        q = input("> ")
+        if q.lower() == "exit":
+            break
+        messages.append({"role": "user", "content": q})
+
+run("NFLX")
 # run it
 # report = get_report("NFLX")
 # print(summarize(report))
